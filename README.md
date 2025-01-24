@@ -17,15 +17,15 @@ flvcast has three "play modes", which determine the videos to play and the order
 ```
 
 The play modes available are:
-* `-f <filename>`: Single file mode
+* `-f <filename>`: Single file mode.
   Plays one video file through, then exits.  The video to play is in `filename` argument.  Optional arguments:
   * `-l <loop_count>`: Play the video `loop_count` times before exiting.
-* `-p <playlist>`: Playlist mode
+* `-p <playlist>`: Playlist mode.
   Plays a playlist of videos, then exits.  The playlist is in .m3u format, one video per line.  Comments are supported, but EXTM3U directives are ignored.
   Optional arguments:
   * `-l <loop_count>`: Play the playlist `loop_count` times before exiting.
   * `-s`: Play in shuffled order.  If `loop_count` is also set, the shuffled playlist is completely played before looping, and each iteration reshuffles again.
-* `-e <script>`: Script mode
+* `-e <script>`: Script mode.
   Executes a script each time a video is queued.  The script must print a single line to `STDOUT`, containing the path to a video to read and play.
   This mode will continue playing as long as the script returns filenames.  To terminate playback, print an empty line instead.
 

@@ -16,6 +16,7 @@
 #define FLV_MAX_TAG_SIZE (FLV_TAG_HEADER_SIZE + FLV_TAG_PAYLOAD_MAX_SIZE + FLV_TAG_FOOTER_SIZE)
 
 struct flv {
+	int verbose;
 	FILE * file;
 	unsigned char tag[FLV_MAX_TAG_SIZE];
 	unsigned long tagSize;
@@ -23,18 +24,18 @@ struct flv {
 
 // helper functions
 //  parse 24 bits to an unsigned long
-static unsigned long u24be(const unsigned char * const p)
+static unsigned long u24be(const unsigned char * p)
 {
 	return *p << 16 | *(p + 1) << 8 | *(p + 2);
 }
 
 //  parse 32 bits to an unsigned long
-static unsigned long u32be(const unsigned char * const p)
+static unsigned long u32be(const unsigned char * p)
 {
 	return *p << 24 | *(p + 1) << 16 | *(p + 2) << 8 | *(p + 3);
 }
 
-struct flv * flv_open(const char * filename)
+struct flv * flv_open(const char * filename, int verbose)
 {
 	/* *************************************************** */
 	// allocate a very large buffer for all packets and operations
@@ -45,6 +46,7 @@ struct flv * flv_open(const char * filename)
 		goto returnError;
 	}
 
+	f->verbose = verbose;
 	/* *************************************************** */
 	// Let's open an FLV now
 	f->file = fopen(filename, "rb");
@@ -68,13 +70,13 @@ struct flv * flv_open(const char * filename)
 		goto closeFile;
 	}
 
-	/*
+	if (f->verbose) {
 		if (f->tag[4] & 0x01)
-			puts("FLV contains VIDEO");
+			puts("info: FLV contains VIDEO");
 
 		if (f->tag[4] & 0x04)
-			puts("FLV contains AUDIO");
-	*/
+			puts("info: FLV contains AUDIO");
+	}
 
 	if ((f->tag[4] & 0x05) == 0)
 		fprintf(stderr, "Warning: flv_open(%s): FLV header byte (%02x) does not indicate VIDEO nor AUDIO?\n", filename, f->tag[4]);
@@ -102,6 +104,9 @@ struct flv * flv_open(const char * filename)
 		fprintf(stderr, "Warning: flv_open(%s): flvTagSize0 expected 0, got %lu\n", filename, flvTagSize0);
 
 	return f;
+
+	/* *************************************************** */
+	// error handling
 closeFile:
 	fclose(f->file);
 freeFLV:
@@ -124,14 +129,16 @@ long flv_next(struct flv * f)
 	}
 
 	// Successfully got header.  Parse it.
-	//unsigned char payloadType = f->tag[0];
 	unsigned long payloadSize = u24be(f->tag + 1);
-	//unsigned long timestamp = u24be(f->tag + 4) | (f->tag[7] << 24);
 
-	//unsigned long streamId = u24be(f->tag + 8);
+	if (f->verbose) {
+		unsigned char payloadType = f->tag[0];
+		unsigned long timestamp = u24be(f->tag + 4) | (f->tag[7] << 24);
 
-	//if (DEBUG)
-	//	printf("Position %lu, Type %hhu, Size %lu, Timestamp %lu, Stream %lu\n", ftell(flv), payloadType, payloadSize, timestamp, streamId);
+		unsigned long streamId = u24be(f->tag + 8);
+
+		printf("Position %lu, Type %hhu, Size %lu, Timestamp %lu, Stream %lu\n", ftell(f->file) - FLV_TAG_HEADER_SIZE, payloadType, payloadSize, timestamp, streamId);
+	}
 
 	// Read the rest of the payload.
 	if (1 != fread(f->tag + FLV_TAG_HEADER_SIZE, payloadSize + FLV_TAG_FOOTER_SIZE, 1, f->file)) {
