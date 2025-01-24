@@ -9,6 +9,7 @@ Sends an input FLV file to a designated RTMP URL.
 #include <librtmp/rtmp.h>
 #include <librtmp/log.h>
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -35,13 +36,18 @@ static void sig_handler(int signum)
 /* *************************************************** */
 int main(int argc, char * argv[])
 {
+	// cli args
 	char * streamUrl;
 	enum PlayMode playMode = none;
 	char * playParam;
 	unsigned int loops = 0;
 	int verbose = 0, shuffle = 0;
-	int opt;
 
+	// playlist
+	char ** files;
+	unsigned int file_count = 0, file_index = 0;
+
+	int opt;
 	while ((opt = getopt(argc, argv, "vl:f:p:e:s")) != -1) {
 		switch (opt) {
 		case 'v':
@@ -124,8 +130,21 @@ int main(int argc, char * argv[])
 	}
 
 	streamUrl = argv[optind];
+
 	// A "file" is really just a playlist of one.
 	//  Set up the playlist by reading the file or creating this.
+	if (playMode == file) {
+		file_count = 1;
+		files = malloc(file_count * sizeof(char *));
+		files[0] = playParam;
+		playMode = playlist;
+	} else if (playMode == playlist) {
+		file_count = 1;
+		files = malloc(file_count * sizeof(char *));
+		files[0] = playParam;
+		playMode = playlist;
+	}
+
 	/* *************************************************** */
 	int ret = EXIT_SUCCESS;
 	/* *************************************************** */
@@ -182,11 +201,11 @@ int main(int argc, char * argv[])
 		FLV flv;
 
 		switch (playMode) {
-		case file:
-			flv = flv_open(playParam);
-			break;
-
 		case playlist:
+			flv = flv_open(playParam, verbose);
+			break;
+		case exec:
+			flv = flv_open(playParam, verbose);
 			break;
 		}
 

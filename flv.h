@@ -4,7 +4,7 @@
 typedef struct flv * FLV;
 
 // open an FLV from a file
-FLV flv_open(const char * filename);
+FLV flv_open(const char * filename, int verbose);
 
 // advance to next frame in FLV
 //  updates tag data and returns the new tag_size
